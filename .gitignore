@@ -1,4 +1,5 @@
 .env
 *.csv
+*.netxml
 *.html
 *.json

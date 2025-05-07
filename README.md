@@ -1,12 +1,12 @@
 # Code Use Case
 
-The goal of this script is to locate 802.11b/g/a device locations (eg. phones/tablets/laptops with WiFi enabled), by using direct exports from `airodump-ng` using `.kismet.csv` extension files, without GPS data.
+The goal of this script is to locate 802.11b/g/a device locations (eg. phones/tablets/laptops with WiFi enabled), by using direct exports from `airodump-ng` using `.netxml` extension files, without GPS data.
 
-The kismet.csv file will contain captured 802.11b/g/a device probe requests with SSID information. This makes it possible to accurately attribute device location using this information. The accuracy of SSID locations is dependent on the accuracy of WiGLE.net information.
+The kismet.netxml files will contain captured 802.11b/g/a device probe requests with SSID information. This makes it possible to attribute all past locations a device has previously been seen, based on it's past Wi-Fi network associations. The accuracy of SSID locations is dependent on the accuracy of WiGLE.net information.
 
 ## Getting Started:
 
-- You need a `airodump-ng` produced export in KISMET.CSV format (these are delimited with a semicolon), and contain more information that a typical CSV export.
+- You need a `airodump-ng` produced export in NETXML format (this is a XML formatted file).
 - WiGLE.net API key *(a free registered account is fine if for personal use)*.
 
 ## Step 1: Install python, pip and dependencies.
@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 ## Step 2: Create a local .env file
 
-- Create your local `.env` file:
+- Create your local `.env` file. Use the below information to get started:
 
     ```
     WIGLE_API_KEY=your_api_key
@@ -27,7 +27,7 @@ pip install -r requirements.txt
     ```
 
 - Explanation of the configuration:
-    - Enter your WiGLE.net encoded API key.
+    - `WIGLE_API_KEY=your_api_key` - Enter your WiGLE.net encoded API key.
         - Log in at: https://wigle.net/account.
         - Scroll down to the API Key section.
         - Copy the value under: `Encoded for use: [THIS ONE]`
@@ -38,10 +38,63 @@ pip install -r requirements.txt
 
 ## Step 3: Run script
 
-```
-chmod +x wigle_ssid_mapper.py
-python3 wigle_ssid_mapper.py
-```
+- Give permission to execute.
+    ```
+    chmod +x wigle_ssid_mapper.py
+    ```
+
+- Run script
+    ```
+    python3 .\wigle_ssid_mapper.py -h
+    usage: wigle_ssid_mapper.py [-h] [--netxml NETXML] [--ssid SSID] [--country-code COUNTRY_CODE] [--output-prefix OUTPUT_PREFIX] [--first-time FIRST_TIME [FIRST_TIME ...]]
+                                [--last-time LAST_TIME [LAST_TIME ...]] [--no-color] [--debug]
+
+    WiGLE SSID lookup tool (OOP version)
+
+    options:
+    -h, --help            show this help message and exit
+    --netxml NETXML       Airodump-ng netxml file
+    --ssid SSID           Direct SSID to search
+    --country-code COUNTRY_CODE
+    --output-prefix OUTPUT_PREFIX
+    --first-time FIRST_TIME [FIRST_TIME ...]
+                            1 or 2 'first-time' values
+    --last-time LAST_TIME [LAST_TIME ...]
+                            1 or 2 'last-time' values
+    --no-color
+    --debug
+    ```
+
+    **NOTE**: For the "first-time" and "last-time" arguments, the time format is `YYYY-MM-DD HH:MM`.
+
+### Command usage example
+
+- Use of all command arguments when filtering based on time.
+
+    ```
+    python3 wigle_ssid_mapper.py \
+    --country-code US \
+    --netxml capture.kismet.netxml \
+    --last-time "2025-04-25 19:07" "2025-04-25 20:07" \
+    --output-prefix test
+    ```
+
+    - `--country-code` (Optional) - Default is any. We have set the US. If used, must be the two digit [ISO country code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes). WiGLE.net does not strictly conform to API calls with the country code filter. We will still see other country results.
+    - `--netxml` (Optional) - We are using `capture.kismet.netxml`.   
+    - `--last-time "2025-04-25 19:07" "2025-04-25 20:07"` (Optional) - Specifies a timeframe of interest, for the last time probe requests were seen containing SSID's.
+    - `--output-prefix` (Optional) - Default is `wigle_results`. We have changed this to `test`.
+
+
+
+- Use of only the --ssid command argument.
+
+    ```
+    python3 wigle_ssid_mapper.py --ssid test
+    ```
+
+    - `--ssid` (Optional) - Will bypass used of --netxml and perform a direct lookup of an SSID on WiGLE.net.
+    - `--country-code` (Optional) - Default is None, therefore any country. If used, must be the two digit [ISO country code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes). WiGLE.net does not strictly conform to API calls with the country code filter. We will still see other country results.
+    - `--output-prefix` (Optional) - Default is `wigle_map`.
 
 ### Results of running this script
 
@@ -53,68 +106,3 @@ At a minimum, the following files are produced provided defaults for filenames a
 
 - `wigle_map.html`: An interactive map with markers showing the locations of the found SSIDs.
 
-### Command Syntax:
-
-```
-python3 wigle_ssid_mapper.py -h
-
-usage: wigle_ssid_mapper.py [-h] [--ssid-filter SSID_FILTER] [--country-code COUNTRY_CODE] [--airodump-csv AIRODUMP_CSV] [--output-prefix OUTPUT_PREFIX]
-                            [--first-time-after FIRST_TIME_AFTER] [--last-time-before LAST_TIME_BEFORE] [--first-time-before FIRST_TIME_BEFORE] [--last-time-after LAST_TIME_AFTER]
-                            [--no-color]
-
-WiGLE SSID lookup tool
-
-options:
-  -h, --help            show this help message and exit
-  --ssid-filter SSID_FILTER
-                        SSID(s) to filter (can be multiple)
-  --country-code COUNTRY_CODE
-                        Country code for WiGLE filtering
-  --airodump-csv AIRODUMP_CSV
-                        Path to Airodump CSV file
-  --output-prefix OUTPUT_PREFIX
-                        Prefix for output files
-  --first-time-after FIRST_TIME_AFTER
-                        Filter networks first seen after (YYYY-MM-DD HH:MM:SS)
-  --last-time-before LAST_TIME_BEFORE
-                        Filter networks last seen before (YYYY-MM-DD HH:MM:SS)
-  --first-time-before FIRST_TIME_BEFORE
-                        Filter networks first seen before (YYYY-MM-DD HH:MM:SS)
-  --last-time-after LAST_TIME_AFTER
-                        Filter networks last seen after (YYYY-MM-DD HH:MM:SS)
-  --no-color            Disable colored output
-```
-
-**NOTE**: For the "first-time-\*" and "last-time-\*" arguments, you may shorten the date syntax by using `YYYY-MM-DD` only without also appending `HH:MM:SS`. This would mean midnight, i.e `00:00:00`.
-
-### Command usage example
-
-- Use of all command arguments.
-
-```
-python3 wigle_ssid_mapper.py \
-  --ssid-filter test \
-  --country-code US \
-  --airodump-csv capture.kismet.csv \
-  --last-time-after "2025-04-25 19:07:00" \
-  --last-time-before "2025-04-25 20:07:00" \
-  --output-prefix test
-```
-
-- Use of no command arguments.
-    - `--ssid-filter` (Optional) - Filtered to include an SSID of `test` only.
-    - `--country-code` (Optional) - Default is any, we have set the US. If used, must be the two digit [ISO country code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes). WiGLE.net does not strictly conform to API calls with the country code filter. We will still see other country results.
-    - `--airodump-csv` (Optional) - Default output prefix is `capture.csv`, we are using `capture.kismet.csv`.   
-    - `--last-time-after "2025-04-25 19:07:00"` and `--last-time-before "2025-04-25 20:07:00"` (Optional) - Specifies a timeframe of interest, for the last time probe requests were seen containing SSID's. `capture.kismet.csv` contains "FirstTime" and "LastTime" fields to make such filters possible.
-    - `--output-prefix` (Optional) - Default is `wigle_map`. We have changed this to `test`.
-
-
-```
-python3 wigle_ssid_mapper.py
-```
-
-- Use of no command arguments.
-    - `--ssid-filter` (Optional) - Default is everything in the CSV file.
-    - `--country-code` (Optional) - Default is None, therefore any country. If used, must be the two digit [ISO country code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes). WiGLE.net does not strictly conform to API calls with the country code filter. We will still see other country results.
-    - `--airodump-csv` (Optional) - Default output prefix is `capture.csv`.
-    - `--output-prefix` (Optional) - Default is `wigle_map`.
